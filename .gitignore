@@ -1,3 +1,8 @@
+####################
+# GEARBox.Factorio #
+####################
+
+
 #############
 # .NET Core #
 #############
@@ -644,3 +649,8 @@ Temporary Items
 
 # Log files created by default by the nohup command
 nohup.out
+
+####################
+# GEARBox.Factorio #
+####################
+!**/Properties/PublishProfiles/*.pubxml
