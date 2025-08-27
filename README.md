@@ -4,7 +4,7 @@ Game-Extension Additional Resources for Factorio
 
 ## What is GEARBox?
 
-GEARBox is a term coined by FireController#1847 to emphasize a group projects which provide utilities and enhancements for various video games. GEAR is an acronym which stands for *Game-Enhancement Additional Resources*.
+GEARBox is a term coined by FireController#1847 to emphasize a group projects which provide utilities and enhancements for modding various video games. GEAR is an acronym which stands for *Game-Enhancement Additional Resources*.
 
 GEARBox is not a trademarked term, and you are encouraged to use it in your projects to help identify and categorize tools for games which allow modifications (e.g. 'modding' or 'mods').
 
