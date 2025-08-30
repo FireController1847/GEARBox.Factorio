@@ -155,17 +155,120 @@ class TileGrid {
     }
 }
 
-function initControls(): void {
-    const changeBackgroundControl = document.querySelector("#control-background > button") as HTMLButtonElement | null;
-    if (!changeBackgroundControl) return;
+let currentMenu: string | null = null;
 
-    changeBackgroundControl.onclick = function () {
-        const grid = document.getElementById("grid") as HTMLDivElement | null;
-        if (!grid) return;
-        const num = Number(grid.dataset.background);
-        grid.dataset.background = isNaN(num) ? "1" : String((num + 1) % 3);
-        changeBackgroundControl.innerText = String(Number(grid.dataset.background) + 1);
-    };
+function openMenu(menuId: string): void {
+    if (currentMenu) {
+        closeMenu(currentMenu);
+    }
+    currentMenu = menuId;
+    const menu = document.getElementById(menuId) as HTMLDivElement | null;
+    if (menu) {
+        menu.classList.remove("hidden");
+    }
+}
+window.openMenu = openMenu;
+
+function closeMenu(menuId: string): void {
+    const menu = document.getElementById(menuId) as HTMLDivElement | null;
+    if (menu) {
+        menu.classList.add("hidden");
+    }
+    currentMenu = null;
+}
+window.closeMenu = closeMenu;
+
+function initControls(): void {
+    const closeControls = document.querySelectorAll(".menu-close") as NodeListOf<HTMLButtonElement>;
+    closeControls.forEach(control => {
+        control.onclick = function () {
+            const menu = control.closest(".menu") as HTMLDivElement | null;
+            if (menu) {
+                closeMenu(menu.id);
+            }
+        };
+    });
+
+    const tileManagerControl = document.querySelector("#control-open-tile-manager > button") as HTMLButtonElement | null;
+    if (!tileManagerControl) {
+        console.error("Tile Manager control not found");
+    } else {
+        tileManagerControl.onclick = function () {
+            openMenu("tile-manager-menu");
+        };
+    }
+
+    const tmCreateTileControl = document.querySelector("#tm-create-tile-control > button") as HTMLButtonElement | null;
+    if (!tmCreateTileControl) {
+        console.error("Create Tile control not found");
+    } else {
+        tmCreateTileControl.onclick = function () {
+            // TODO: clear tile editor
+            openMenu("tile-editor-menu");
+        };
+    }
+
+    const teAddSpriteControl = document.querySelector("#te-add-sprite-control > button") as HTMLButtonElement | null;
+    if (!teAddSpriteControl) {
+        console.error("Add Sprite control not found");
+    } else {
+        teAddSpriteControl.onclick = function () {
+            // TODO: clear sprite manager
+            openMenu("sprite-editor-menu");
+        };
+    }
+
+    const seAddSpriteLayerControl = document.querySelector("#se-add-sprite-layer-control > button") as HTMLButtonElement | null;
+    if (!seAddSpriteLayerControl) {
+        console.error("Add Sprite Layer control not found");
+    } else {
+        seAddSpriteLayerControl.onclick = function () {
+            // TODO: clear sprite layer editor
+            openMenu("sprite-layer-editor-menu");
+        };
+    }
+
+    const slePictureUpload = document.querySelector("#sle-picture-upload") as HTMLInputElement | null;
+    if (!slePictureUpload) {
+        console.error("Picture Upload control not found");
+    } else {
+        slePictureUpload.onchange = function () {
+            const file = slePictureUpload.files?.[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    const img = document.getElementById("sle-picture-preview") as HTMLImageElement | null;
+                    if (img) {
+                        img.src = e.target?.result as string;
+                        img.style.display = "block";
+                    }
+                };
+                reader.readAsDataURL(file);
+            }
+        };
+    }
+
+    const sleSaveChangesControl = document.querySelector("#sle-save-changes-control > button") as HTMLButtonElement | null;
+    if (!sleSaveChangesControl) {
+        console.error("Save Changes control not found");
+    } else {
+        sleSaveChangesControl.onclick = function () {
+            // TODO: implement save changes functionality
+        };
+    }
+
+    const changeBackgroundControl = document.querySelector("#control-background > button") as HTMLButtonElement | null;
+    if (!changeBackgroundControl) {
+        console.error("Change Background control not found");
+    } else {
+        changeBackgroundControl.onclick = function () {
+            const grid = document.getElementById("grid") as HTMLDivElement | null;
+            if (!grid) return;
+            const num = Number(grid.dataset.background);
+            grid.dataset.background = isNaN(num) ? "1" : String((num + 1) % 3);
+            changeBackgroundControl.innerText = String(Number(grid.dataset.background) + 1);
+        };
+    }
 }
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -204,16 +307,19 @@ document.addEventListener("DOMContentLoaded", () => {
     initControls();
 
     const animate = (): void => {
-        if (keys.has("w")) offsetY += panSpeed;
-        if (keys.has("s")) offsetY -= panSpeed;
-        if (keys.has("a")) offsetX += panSpeed;
-        if (keys.has("d")) offsetX -= panSpeed;
+        if (currentMenu != null) {
+            // ...
+        } else {
+            if (keys.has("w")) offsetY += panSpeed;
+            if (keys.has("s")) offsetY -= panSpeed;
+            if (keys.has("a")) offsetX += panSpeed;
+            if (keys.has("d")) offsetX -= panSpeed;
 
-        grid.style.transform = `translate3d(calc(-50% + ${offsetX}px), calc(-50% + ${offsetY}px), 0)`;
+            grid.style.transform = `translate3d(calc(-50% + ${offsetX}px), calc(-50% + ${offsetY}px), 0)`;
 
-        gridInstance.updateMouseHover();
-        gridInstance.resetFrameHistory();
-
+            gridInstance.updateMouseHover();
+            gridInstance.resetFrameHistory();
+        }
         requestAnimationFrame(animate);
     };
 

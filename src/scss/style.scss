@@ -6,6 +6,10 @@ $background-resources: (
     bg3: url("./resource/bg/background3.png")
 );
 
+* {
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+}
+
 body {
     background-color: black;
     display: flex;
@@ -20,46 +24,62 @@ body {
     overflow: hidden;
 }
 
+.box-style {
+    color: white;
+    font-weight: bold;
+    text-shadow: 1px 2px rgba(0, 0, 0, 0.25);
+    background-color: rgba(255, 255, 255, 0.55);
+    border: 1.25px solid rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    transition: background-color 0.125s, border 0.125s, box-shadow 0.125s;
+    pointer-events: all;
+}
+
+.box-hover-style:hover {
+    background-color: rgba(255, 255, 255, 0.70);
+    border: 1.25px solid rgba(255, 255, 255, 0.30);
+    box-shadow: 0 0 8px rgba(0, 0, 0, 0.25);
+    cursor: pointer;
+}
+
+.spacer {
+    flex-grow: 1;
+}
+
+.hidden {
+    display: none !important;
+}
+
 #controls {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-start;
     position: absolute;
     top: 0;
     left: 0;
-    bottom: 0;
-    right: 0;
+    padding: 0.50em;
+    gap: 0.50em;
     z-index: 2;
     pointer-events: none;
     user-select: none;
 }
 
 #controls button {
-    position: absolute;
-    top: 0;
-    left: 0;
-    bottom: 0;
-    right: 0;
-    color: white;
-    font-weight: bold;
-    text-shadow: 1px 2px rgba(0, 0, 0, 0.25);
-    background-color: rgba(255, 255, 255, 0.65);
-    border: 1.25px solid rgba(255, 255, 255, 0.15);
-    border-radius: 8px;
-    transition: background-color 0.125s, border 0.125s, box-shadow 0.125s;
-    pointer-events: all;
-}
-
-#controls button:hover {
-    background-color: rgba(255, 255, 255, 0.75);
-    border: 1.25px solid rgba(255, 255, 255, 0.85);
-    box-shadow: 0 0 8px rgba(0, 0, 0, 0.25);
-    cursor: pointer;
+    position: relative;
+    width: 100%;
+    height: 100%;
 }
 
 #control-background {
-    position: absolute;
-    top: 5px;
-    left: 10px;
+    position: relative;
     height: 5vh;
     width: 3.5vw;
+}
+
+#control-open-tile-manager {
+    position: relative;
+    height: 5vh;
 }
 
 #grid {
@@ -75,15 +95,17 @@ body {
     background-image: map.get($background-resources, "bg1");
     background-repeat: no-repeat;
     background-size: auto;
-    background-position: top left;
+    background-position: 0 0;
     z-index: 1;
 }
 
 #grid[data-background="1"] {
+    background-position-x: -13px;
     background-image: map.get($background-resources, "bg2");
 }
 
 #grid[data-background="2"] {
+    background-position: -32px;
     background-image: map.get($background-resources, "bg3");
 }
 
@@ -91,8 +113,132 @@ body {
     width: var(--tile);
     height: var(--tile);
     user-select: none;
+
     &:hover {
         background-image: url("../resource/selection-box.png");
         background-size: cover;
     }
+}
+
+#menus {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    right: 0;
+    z-index: 2;
+    pointer-events: none;
+    user-select: none;
+}
+
+.menu {
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    height: 80%;
+    width: 80%;
+}
+
+.menu-title-bar {
+    position: relative;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    background-color: rgba(255, 255, 255, 0.26);
+    padding: 0.2em 1em;
+}
+
+.menu-title-bar .menu-title {
+    position: relative;
+    padding: 0;
+    margin: 0;
+}
+
+.menu-title-bar .menu-close {
+    border-radius: 200px;
+    width: 18px;
+    height: 18px;
+    background-color: rgba(255, 0, 0, 0.65);
+    border: 2px solid rgba(0, 0, 0, 0.04);
+}
+
+.menu-title-bar .menu-close p {
+    font-family: 'Courier New', Courier, sans-serif;
+    font-weight: normal;
+    color: transparent;
+    font-size: 20px;
+    text-shadow: none;
+    transition: color 0.3s;
+    margin-top: -7.5px;
+    margin-left: -3px;
+}
+
+.menu-title-bar .menu-close:hover p {
+    color: rgba(0, 0, 0, 0.50);
+}
+
+.menu-content {
+    flex-grow: 1;
+    padding: 1em;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: stretch;
+    flex-grow: 1;
+    padding: 1em;
+}
+
+.form-group-small {
+    @extend .form-group;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.75em 2em;
+
+    label {
+        margin: 0;
+        white-space: nowrap;
+        flex-grow: 1;
+    }
+}
+
+.menu-bottom-bar {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-end;
+    background-color: rgba(255, 255, 255, 0.16);
+    padding: 0.6em 1em;
+    gap: 0.5em;
+}
+
+#tile-editor-menu,
+#property-manager-menu,
+#sprite-editor-menu,
+#sprite-layer-editor-menu {
+    width: 50%;
+}
+
+#sle-picture-preview-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    height: 64px;
+    max-height: 64px;
+    margin: 1em 0 0 0;
+}
+#sle-picture-preview {
+    width: auto;
+    max-width: 128px;
+    height: auto;
+    max-height: 64px;
 }
