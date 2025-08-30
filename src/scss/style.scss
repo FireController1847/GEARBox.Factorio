@@ -118,12 +118,22 @@ ul {
 .tile {
     width: var(--tile);
     height: var(--tile);
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
     user-select: none;
-
     &:hover {
         background-image: url("../resource/selection-box.png");
         background-size: cover;
     }
+}
+.tile-img-container {
+    display: flex;
+    overflow: hidden;
+}
+.tile-img-container img {
+    position: absolute;
 }
 
 #menus {

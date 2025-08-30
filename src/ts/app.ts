@@ -1,5 +1,8 @@
 import "./structures";
 
+let selectedTile: Tile | null = null;
+let selectedSprite: Sprite | null = null;
+
 class TileGrid {
     private readonly grid: HTMLDivElement;
     private readonly rows: number;
@@ -133,23 +136,30 @@ class TileGrid {
 
     protected onTileHoverWhileDown(x: number, y: number, tile: HTMLDivElement, button: number): void {
         if (button === 0) {
-            tile.style.backgroundColor = "rgba(255, 255, 255, 0.5)";
+            if (!selectedTile || !selectedSprite) return;
+            tile.innerHTML = "";
+            for (const layer of selectedSprite.layers) {
+                if (layer.file == null) continue;
+                const containerElement = document.createElement("div");
+                containerElement.classList.add("tile-img-container");
+                containerElement.style.width = String(layer.width) + "px";
+                containerElement.style.height = String(layer.height) + "px";
+                const imageElement = document.createElement("img");
+                imageElement.src = URL.createObjectURL(layer.file);
+                if (!layer.drawAsShadow && layer.variants > 1) {
+                    const rand = Math.floor(Math.random() * ((layer.variants - 1) - 0 + 1) + 0);
+                    imageElement.style.left = "-" + String(rand * layer.width) + "px";
+                }
+                containerElement.appendChild(imageElement);
+                tile.appendChild(containerElement);
+            }
         } else if (button === 2) {
-            tile.style.backgroundColor = "";
+            tile.innerHTML = "";
         }
     }
 
     public getTileAt(x: number, y: number): HTMLDivElement | null {
         return this.grid.querySelector<HTMLDivElement>(`.tile[data-x="${x}"][data-y="${y}"]`);
-    }
-
-    public setTileBackground(x: number, y: number, imageUrl: string): void {
-        const tile = this.getTileAt(x, y);
-        if (!tile) return;
-
-        const scale = this.zoomScale * 100;
-        tile.style.backgroundImage = `url(${imageUrl})`;
-        tile.style.backgroundSize = `${scale}% ${scale}%`;
     }
 
     public resetFrameHistory(): void {
@@ -353,6 +363,9 @@ function initControls(): void {
                 if (!found) {
                     tiles.push(currentTile);
                 }
+                // TODO: Add a tile/sprite selector hotbar at the bottom
+                selectedTile = currentTile;
+                selectedSprite = currentTile.sprites.length > 0 ? currentTile.sprites[0] : null;
             }
             openMenu("tile-manager-menu");
         };
