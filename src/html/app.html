@@ -29,7 +29,9 @@
                     <div class="spacer"></div>
                 </div>
                 <div class="menu-content">
-
+                    <ul id="tm-tile-list">
+                        <!-- Filled dynamically -->
+                    </ul>
                 </div>
                 <div class="menu-bottom-bar">
                     <div id="tm-create-tile-control">
@@ -47,16 +49,26 @@
                     <div class="spacer"></div>
                 </div>
                 <div class="menu-content">
-                    <form id="te-sprite-form">
+                    <form id="te-tile-form">
                         <div class="form-group">
-                            <label for="te-sprite-list">Sprites</label>
-                            <ul id="te-sprite-list">
+                            <label for="te-tile-name">Name</label>
+                            <input type="text" id="te-tile-name" name="te-tile-name" placeholder="Tile Name">
+                        </div>
+                        <div class="form-group">
+                            <label for="te-tile-list">Sprites</label>
+                            <ul id="te-tile-list">
                                 <!-- Filled dynamically -->
                             </ul>
                         </div>
                     </form>
                 </div>
                 <div class="menu-bottom-bar">
+                    <div id="te-discard-changes-control">
+                        <button class="box-style box-hover-style">Discard Changes</button>
+                    </div>
+                    <div id="te-save-changes-control">
+                        <button class="box-style box-hover-style">Save Changes</button>
+                    </div>
                     <div id="te-add-sprite-control">
                         <button class="box-style box-hover-style">Add Sprite</button>
                     </div>
@@ -86,12 +98,18 @@
                     </form>
                 </div>
                 <div class="menu-bottom-bar">
+                    <div id="se-discard-changes-control">
+                        <button class="box-style box-hover-style">Discard Changes</button>
+                    </div>
+                    <div id="se-save-changes-control">
+                        <button class="box-style box-hover-style">Save Changes</button>
+                    </div>
                     <div id="se-add-sprite-layer-control">
-                        <button class="box-style box-hover-style">Add Sprite Layer</button>
+                        <button class="box-style box-hover-style">Add Layer</button>
                     </div>
                 </div>
             </div>
-            <div id="sprite-layer-editor-menu" class="menu box-style">
+            <div id="sprite-layer-editor-menu" class="menu box-style hidden">
                 <div class="menu-title-bar">
                     <button class="menu-close box-style box-hover-style">
                         <p>×</p>
@@ -132,7 +150,10 @@
                     </form>
                 </div>
                 <div class="menu-bottom-bar">
-                    <div id="sle-save-changes-control" class="box-style">
+                    <div id="sle-discard-changes-control">
+                        <button class="box-style box-hover-style">Discard Changes</button>
+                    </div>
+                    <div id="sle-save-changes-control">
                         <button class="box-style box-hover-style">Save Changes</button>
                     </div>
                 </div>

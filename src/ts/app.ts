@@ -1,3 +1,5 @@
+import "./structures";
+
 class TileGrid {
     private readonly grid: HTMLDivElement;
     private readonly rows: number;
@@ -155,24 +157,132 @@ class TileGrid {
     }
 }
 
+function createTileManagerTileElement(tile: Tile): HTMLDivElement {
+    const tileElement = document.createElement("div");
+    tileElement.innerText = tile.name;
+    tileElement.classList.add("tm-tile");
+    tileElement.onclick = function () {
+        currentTile = tile;
+        openMenu("tile-editor-menu");
+    };
+    return tileElement;
+}
+
+function createTileEditorSpriteElement(sprite: Sprite): HTMLDivElement {
+    const spriteElement = document.createElement("div");
+    spriteElement.innerText = sprite.property || "(no property)";
+    spriteElement.classList.add("te-sprite");
+    spriteElement.onclick = function () {
+        currentSprite = sprite;
+        openMenu("sprite-editor-menu");
+    };
+    return spriteElement;
+}
+
+function createSpriteEditorLayerElement(layer: SpriteLayer): HTMLDivElement {
+    const layerElement = document.createElement("div");
+    layerElement.innerText = layer.file ? layer.file.name : "(no file)";
+    layerElement.classList.add("se-layer");
+    layerElement.onclick = function () {
+        currentSpriteLayer = layer;
+        openMenu("sprite-layer-editor-menu");
+    };
+    return layerElement;
+}
+
+const tiles = [] as Tile[]
+window.tiles = tiles;
+let currentTile: Tile | null = null;
+let currentSprite: Sprite | null = null;
+let currentSpriteLayer: SpriteLayer | null = null;
 let currentMenu: string | null = null;
 
 function openMenu(menuId: string): void {
     if (currentMenu) {
-        closeMenu(currentMenu);
+        closeMenu(currentMenu, true);
     }
     currentMenu = menuId;
     const menu = document.getElementById(menuId) as HTMLDivElement | null;
     if (menu) {
+        if (menuId == "tile-manager-menu") {
+            const teTileList = document.getElementById("tm-tile-list") as HTMLDivElement | null;
+            if (teTileList) {
+                teTileList.innerHTML = "";
+                for (const tile of tiles) {
+                    const tileElement = createTileManagerTileElement(tile);
+                    teTileList.appendChild(tileElement);
+                }
+            }
+        } else if (menuId == "tile-editor-menu") {
+            const teTileNameInput = document.getElementById("te-tile-name") as HTMLInputElement | null;
+            if (teTileNameInput && currentTile) {
+                teTileNameInput.value = currentTile.name;
+            }
+            const teTileSpriteList = document.getElementById("te-tile-list") as HTMLInputElement | null;
+            if (teTileSpriteList && currentTile) {
+                teTileSpriteList.innerHTML = "";
+                for (const sprite of currentTile.sprites) {
+                    const spriteElement = createTileEditorSpriteElement(sprite);
+                    teTileSpriteList.appendChild(spriteElement);
+                }
+            }
+        } else if (menuId == "sprite-editor-menu") {
+            const sePropertyInput = document.getElementById("se-property") as HTMLInputElement | null;
+            if (sePropertyInput && currentSprite) {
+                sePropertyInput.value = currentSprite.property;
+            }
+            const seSpriteLayerList = document.getElementById("se-sprite-layers") as HTMLInputElement | null;
+            if (seSpriteLayerList && currentSprite) {
+                seSpriteLayerList.innerHTML = "";
+                for (const layer of currentSprite.layers) {
+                    const layerElement = createSpriteEditorLayerElement(layer);
+                    seSpriteLayerList.appendChild(layerElement);
+                }
+            }
+        } else if (menuId == "sprite-layer-editor-menu") {
+            const slePicturePreview = document.getElementById("sle-picture-preview") as HTMLImageElement | null;
+            if (slePicturePreview && currentSpriteLayer) {
+                slePicturePreview.src = currentSpriteLayer.file ? URL.createObjectURL(currentSpriteLayer.file) : "";
+            }
+            const sleLayerWidthInput = document.getElementById("sle-layer-width") as HTMLInputElement | null;
+            if (sleLayerWidthInput && currentSpriteLayer) {
+                sleLayerWidthInput.value = currentSpriteLayer.width.toString();
+            }
+            const sleLayerHeightInput = document.getElementById("sle-layer-height") as HTMLInputElement | null;
+            if (sleLayerHeightInput && currentSpriteLayer) {
+                sleLayerHeightInput.value = currentSpriteLayer.height.toString();
+            }
+            const sleLayerVariantsInput = document.getElementById("sle-layer-variants") as HTMLInputElement | null;
+            if (sleLayerVariantsInput && currentSpriteLayer) {
+                sleLayerVariantsInput.value = currentSpriteLayer.variants.toString();
+            }
+            const sleLayerShiftXInput = document.getElementById("sle-layer-shift-x") as HTMLInputElement | null;
+            if (sleLayerShiftXInput && currentSpriteLayer) {
+                sleLayerShiftXInput.value = currentSpriteLayer.shiftX.toString();
+            }
+            const sleLayerShiftYInput = document.getElementById("sle-layer-shift-y") as HTMLInputElement | null;
+            if (sleLayerShiftYInput && currentSpriteLayer) {
+                sleLayerShiftYInput.value = currentSpriteLayer.shiftY.toString();
+            }
+            const sleLayerDrawAsShadowInput = document.getElementById("sle-layer-draw-as-shadow") as HTMLInputElement | null;
+            if (sleLayerDrawAsShadowInput && currentSpriteLayer) {
+                sleLayerDrawAsShadowInput.checked = currentSpriteLayer.drawAsShadow;
+            }
+        }
         menu.classList.remove("hidden");
     }
 }
 window.openMenu = openMenu;
 
-function closeMenu(menuId: string): void {
+function closeMenu(menuId: string, preserveTile: boolean): void {
     const menu = document.getElementById(menuId) as HTMLDivElement | null;
     if (menu) {
         menu.classList.add("hidden");
+    }
+    if (!preserveTile) {
+        currentTile = null;
+        currentSprite = null;
+        currentSpriteLayer = null;
     }
     currentMenu = null;
 }
@@ -184,7 +294,7 @@ function initControls(): void {
         control.onclick = function () {
             const menu = control.closest(".menu") as HTMLDivElement | null;
             if (menu) {
-                closeMenu(menu.id);
+                closeMenu(menu.id, false);
             }
         };
     });
@@ -203,8 +313,48 @@ function initControls(): void {
         console.error("Create Tile control not found");
     } else {
         tmCreateTileControl.onclick = function () {
-            // TODO: clear tile editor
+            currentTile = {
+                id: crypto.randomUUID(),
+                name: "New Tile",
+                sprites: []
+            };
             openMenu("tile-editor-menu");
+        };
+    }
+
+    const teDiscardChangesControl = document.querySelector("#te-discard-changes-control > button") as HTMLButtonElement | null;
+    if (!teDiscardChangesControl) {
+        console.error("Discard Changes control not found");
+    } else {
+        teDiscardChangesControl.onclick = function () {
+            currentTile = null; // discard changes, don't save
+            openMenu("tile-manager-menu");
+        };
+    }
+
+    const teSaveChangesControl = document.querySelector("#te-save-changes-control > button") as HTMLButtonElement | null;
+    if (!teSaveChangesControl) {
+        console.error("Save Changes control not found");
+    } else {
+        teSaveChangesControl.onclick = function () {
+            if (currentTile) {
+                const teTileNameInput = document.getElementById("te-tile-name") as HTMLInputElement | null;
+                if (teTileNameInput) {
+                    currentTile.name = teTileNameInput.value;
+                }
+                let found: boolean = false;
+                for (let i = 0; i < tiles.length; i++) {
+                    if (tiles[i].id === currentTile.id) {
+                        tiles[i] = currentTile;
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found) {
+                    tiles.push(currentTile);
+                }
+            }
+            openMenu("tile-manager-menu");
         };
     }
 
@@ -213,8 +363,53 @@ function initControls(): void {
         console.error("Add Sprite control not found");
     } else {
         teAddSpriteControl.onclick = function () {
-            // TODO: clear sprite manager
+            teSaveChangesControl?.click();
+            currentSprite = {
+                id: crypto.randomUUID(),
+                property: "",
+                layers: []
+            };
             openMenu("sprite-editor-menu");
+        };
+    }
+
+    const seDiscardChangesControl = document.querySelector("#se-discard-changes-control > button") as HTMLButtonElement | null;
+    if (!seDiscardChangesControl) {
+        console.error("Discard Changes control not found");
+    } else {
+        seDiscardChangesControl.onclick = function () {
+            currentSprite = null; // discard changes, don't save
+            openMenu("tile-editor-menu");
+        };
+    }
+
+    const seSaveChangesControl = document.querySelector("#se-save-changes-control > button") as HTMLButtonElement | null;
+    if (!seSaveChangesControl) {
+        console.error("Save Changes control not found");
+    } else {
+        seSaveChangesControl.onclick = function () {
+            if (currentSprite && currentTile) {
+                const sePropertyInput = document.getElementById("se-property") as HTMLInputElement | null;
+                if (sePropertyInput) {
+                    currentSprite.property = sePropertyInput.value;
+                }
+                const seSpriteLayerList = document.getElementById("se-layer-list") as HTMLInputElement | null;
+                if (seSpriteLayerList) {
+                    currentSprite.layers = [];
+                }
+                let found: boolean = false;
+                for (let i = 0; i < currentTile.sprites.length; i++) {
+                    if (currentTile.sprites[i].id === currentSprite.id) {
+                        currentTile.sprites[i] = currentSprite;
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found) {
+                    currentTile.sprites.push(currentSprite);
+                }
+            }
+            openMenu("tile-editor-menu");
         };
     }
 
@@ -223,7 +418,17 @@ function initControls(): void {
         console.error("Add Sprite Layer control not found");
     } else {
         seAddSpriteLayerControl.onclick = function () {
-            // TODO: clear sprite layer editor
+            seSaveChangesControl?.click();
+            currentSpriteLayer = {
+                id: crypto.randomUUID(),
+                file: null,
+                width: 0,
+                height: 0,
+                variants: 1,
+                shiftX: 0,
+                shiftY: 0,
+                drawAsShadow: false
+            };
             openMenu("sprite-layer-editor-menu");
         };
     }
@@ -248,12 +453,51 @@ function initControls(): void {
         };
     }
 
+    const sleDiscardChangesControl = document.querySelector("#sle-discard-changes-control > button") as HTMLButtonElement | null;
+    if (!sleDiscardChangesControl) {
+        console.error("Discard Changes control not found");
+    } else {
+        sleDiscardChangesControl.onclick = function () {
+            currentSpriteLayer = null; // discard changes, don't save
+            openMenu("sprite-editor-menu");
+        };
+    }
+
     const sleSaveChangesControl = document.querySelector("#sle-save-changes-control > button") as HTMLButtonElement | null;
     if (!sleSaveChangesControl) {
         console.error("Save Changes control not found");
     } else {
         sleSaveChangesControl.onclick = function () {
-            // TODO: implement save changes functionality
+            if (currentSpriteLayer && currentSprite && currentTile) {
+                const sleFileInput = document.getElementById("sle-picture-upload") as HTMLInputElement | null;
+                const sleWidthInput = document.getElementById("sle-width") as HTMLInputElement | null;
+                const sleHeightInput = document.getElementById("sle-height") as HTMLInputElement | null;
+                const sleVariantsInput = document.getElementById("sle-variants") as HTMLInputElement | null;
+                const sleOffsetXInput = document.getElementById("sle-offset-x") as HTMLInputElement | null;
+                const sleOffsetYInput = document.getElementById("sle-offset-y") as HTMLInputElement | null;
+                const sleDrawAsShadowInput = document.getElementById("sle-draw-as-shadow") as HTMLInputElement | null;
+
+                if (sleFileInput) currentSpriteLayer.file = sleFileInput.files?.[0] || null;
+                if (sleWidthInput) currentSpriteLayer.width = Number(sleWidthInput.value);
+                if (sleHeightInput) currentSpriteLayer.height = Number(sleHeightInput.value);
+                if (sleVariantsInput) currentSpriteLayer.variants = Number(sleVariantsInput.value);
+                if (sleOffsetXInput) currentSpriteLayer.shiftX = Number(sleOffsetXInput.value);
+                if (sleOffsetYInput) currentSpriteLayer.shiftY = Number(sleOffsetYInput.value);
+                if (sleDrawAsShadowInput) currentSpriteLayer.drawAsShadow = sleDrawAsShadowInput.checked;
+
+                let found: boolean = false;
+                for (const layer of currentSprite.layers) {
+                    if (layer.id === currentSpriteLayer.id) {
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found) {
+                   currentSprite.layers.push(currentSpriteLayer);
+                }
+
+                openMenu("sprite-editor-menu");
+            }
         };
     }
 
@@ -283,6 +527,7 @@ document.addEventListener("DOMContentLoaded", () => {
     document.addEventListener("contextmenu", e => e.preventDefault());
 
     document.addEventListener("keydown", e => {
+        if (currentMenu != null) return;
         const key = e.key.toLowerCase();
         if (["w", "a", "s", "d"].includes(key)) {
             keys.add(key);
@@ -291,6 +536,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     document.addEventListener("keyup", e => {
+        if (currentMenu != null) return;
         const key = e.key.toLowerCase();
         if (["w", "a", "s", "d"].includes(key)) {
             keys.delete(key);

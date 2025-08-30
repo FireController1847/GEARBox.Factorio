@@ -24,6 +24,12 @@ body {
     overflow: hidden;
 }
 
+ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
 .box-style {
     color: white;
     font-weight: bold;
@@ -225,6 +231,15 @@ body {
 #sprite-editor-menu,
 #sprite-layer-editor-menu {
     width: 50%;
+}
+
+.tm-tile,
+.te-sprite,
+.se-layer {
+    @extend .box-style;
+    @extend .box-hover-style;
+    padding: 0.8em;
+    margin-bottom: 0.2em;
 }
 
 #sle-picture-preview-container {
