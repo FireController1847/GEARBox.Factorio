@@ -141,6 +141,9 @@ ul {
         opacity: 1;
     }
 }
+.tile-img-container * {
+    user-select: none;
+}
 .tile-img-container {
     position: absolute;
     display: flex;

@@ -1,4 +1,6 @@
 import "./structures";
+import "./storage";
+import { loadTiles, saveTiles } from "./storage";
 
 let selectedTile: Tile | null = null;
 let selectedSprite: Sprite | null = null;
@@ -156,13 +158,13 @@ class TileGrid {
             if (!selectedTile || !selectedSprite) return;
             tile.innerHTML = "";
             for (const layer of selectedSprite.layers) {
-                if (layer.file == null) continue;
+                if (layer.fileData == null) continue;
                 const containerElement = document.createElement("div");
                 containerElement.classList.add("tile-img-container");
                 containerElement.style.width = String(layer.width) + "px";
                 containerElement.style.height = String(layer.height) + "px";
                 const imageElement = document.createElement("img");
-                imageElement.src = URL.createObjectURL(layer.file);
+                imageElement.src = layer.fileData;
                 if (!layer.drawAsShadow && layer.variants > 1) {
                     const rand = Math.floor(Math.random() * ((layer.variants - 1) - 0 + 1) + 0);
                     imageElement.style.left = "-" + String(rand * layer.width) + "px";
@@ -217,7 +219,7 @@ function createTileEditorSpriteElement(sprite: Sprite): HTMLDivElement {
 
 function createSpriteEditorLayerElement(layer: SpriteLayer): HTMLDivElement {
     const layerElement = document.createElement("div");
-    layerElement.innerText = layer.file ? layer.file.name : "(no file)";
+    layerElement.innerText = layer.fileName ? layer.fileName : "(no file)";
     layerElement.classList.add("se-layer");
     layerElement.onclick = function () {
         currentSpriteLayer = layer;
@@ -226,12 +228,16 @@ function createSpriteEditorLayerElement(layer: SpriteLayer): HTMLDivElement {
     return layerElement;
 }
 
-const tiles = [] as Tile[]
+const tiles = loadTiles();
 window.tiles = tiles;
 let currentTile: Tile | null = null;
 let currentSprite: Sprite | null = null;
 let currentSpriteLayer: SpriteLayer | null = null;
 let currentMenu: string | null = null;
+
+function persist() {
+    saveTiles(tiles);
+}
 
 function openMenu(menuId: string): void {
     if (currentMenu) {
@@ -277,8 +283,8 @@ function openMenu(menuId: string): void {
             }
         } else if (menuId == "sprite-layer-editor-menu") {
             const slePicturePreview = document.getElementById("sle-picture-preview") as HTMLImageElement | null;
-            if (slePicturePreview && currentSpriteLayer) {
-                slePicturePreview.src = currentSpriteLayer.file ? URL.createObjectURL(currentSpriteLayer.file) : "";
+            if (slePicturePreview && currentSpriteLayer && currentSpriteLayer.fileData != null) {
+                slePicturePreview.src = currentSpriteLayer.fileData;
             }
             const sleLayerWidthInput = document.getElementById("sle-layer-width") as HTMLInputElement | null;
             if (sleLayerWidthInput && currentSpriteLayer) {
@@ -393,6 +399,7 @@ function initControls(): void {
                 selectedTile = currentTile;
                 selectedSprite = currentTile.sprites.length > 0 ? currentTile.sprites[0] : null;
             }
+            persist();
             openMenu("tile-manager-menu");
         };
     }
@@ -448,6 +455,7 @@ function initControls(): void {
                     currentTile.sprites.push(currentSprite);
                 }
             }
+            persist();
             openMenu("tile-editor-menu");
         };
     }
@@ -460,7 +468,8 @@ function initControls(): void {
             seSaveChangesControl?.click();
             currentSpriteLayer = {
                 id: crypto.randomUUID(),
-                file: null,
+                fileName: null,
+                fileData: null,
                 width: 0,
                 height: 0,
                 variants: 1,
@@ -516,7 +525,18 @@ function initControls(): void {
                 const sleOffsetYInput = document.getElementById("sle-offset-y") as HTMLInputElement | null;
                 const sleDrawAsShadowInput = document.getElementById("sle-draw-as-shadow") as HTMLInputElement | null;
 
-                if (sleFileInput) currentSpriteLayer.file = sleFileInput.files?.[0] || null;
+                if (sleFileInput && sleFileInput.files != null && sleFileInput.files.length > 0) {
+                    if (sleFileInput && sleFileInput.files && sleFileInput.files.length > 0) {
+                        const file = sleFileInput.files[0];
+                        currentSpriteLayer.fileName = file.name;
+                        const reader = new FileReader();
+                        reader.onload = () => {
+                            if (currentSpriteLayer == null) return;
+                            currentSpriteLayer.fileData = reader.result as string;
+                        };
+                        reader.readAsDataURL(file);
+                    }
+                }
                 if (sleWidthInput) currentSpriteLayer.width = Number(sleWidthInput.value);
                 if (sleHeightInput) currentSpriteLayer.height = Number(sleHeightInput.value);
                 if (sleVariantsInput) currentSpriteLayer.variants = Number(sleVariantsInput.value);
@@ -534,7 +554,7 @@ function initControls(): void {
                 if (!found) {
                     currentSprite.layers.push(currentSpriteLayer);
                 }
-
+                persist();
                 openMenu("sprite-editor-menu");
             }
         };

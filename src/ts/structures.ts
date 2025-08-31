@@ -1,6 +1,7 @@
 type SpriteLayer = {
     id: string,
-    file: File | null,
+    fileName: string | null,
+    fileData: Base64URLString | null,
     width: number,
     height: number,
     variants: number,
