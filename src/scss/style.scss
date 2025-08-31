@@ -41,11 +41,22 @@ ul {
     pointer-events: all;
 }
 
+.box-style-red {
+    @extend .box-style;
+    background-color: rgba(255, 0, 0, 0.55);
+    border: 1.25px solid rgba(255, 0, 0, 0.05);
+}
+
 .box-hover-style:hover {
     background-color: rgba(255, 255, 255, 0.70);
     border: 1.25px solid rgba(255, 255, 255, 0.30);
     box-shadow: 0 0 8px rgba(0, 0, 0, 0.25);
     cursor: pointer;
+}
+
+.box-hover-style-red:hover {
+    @extend .box-hover-style;
+    background-color: rgba(255, 0, 0, 0.70);
 }
 
 .spacer {
@@ -141,6 +152,9 @@ ul {
         opacity: 1;
     }
 }
+.tile * {
+    pointer-events: none;
+}
 .tile-img-container * {
     user-select: none;
 }
@@ -163,7 +177,7 @@ ul {
     left: 0;
     bottom: 0;
     right: 0;
-    z-index: 2;
+    z-index: 3;
     pointer-events: none;
     user-select: none;
 }
@@ -269,6 +283,17 @@ ul {
     margin-bottom: 0.2em;
 }
 
+.tm-tile {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    gap: 0.5em;
+}
+.tm-tile label {
+    margin: 0;
+}
+
 #sle-picture-preview-container {
     display: flex;
     justify-content: center;
@@ -283,4 +308,89 @@ ul {
     max-width: 128px;
     height: auto;
     max-height: 64px;
+}
+
+#hotbar {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    align-items: center;
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    user-select: none;
+    pointer-events: none;
+    z-index: 2;
+}
+
+#hotbar-contents {
+    display: flex;
+    flex-direction: row;
+    position: relative;
+    margin-bottom: 1em;
+    gap: 0.2em;
+}
+
+#hotbar-contents span,
+#hotbar-selector li {
+    position: relative;
+    display: block;
+    width: 64px;
+    height: 64px;
+    background-color: rgba(0, 0, 0, 0.50);
+    border: 1px solid black;
+    pointer-events: all;
+    &:hover {
+        border: 1px solid rgba(255, 255, 255, 0.50);
+        cursor: pointer;
+    }
+}
+
+#hotbar-contents span.selected,
+#hotbar-selector li.selected {
+    border-color: rgba(255, 255, 255, 0.85);
+}
+
+#hotbar-contents span small,
+#hotbar-selector li small {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    display: block;
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.85);
+    padding: 0.2em;
+    padding-right: 0.6em;
+}
+
+#hotbar-contents span img,
+#hotbar-selector li img {
+    background-color: transparent;
+    padding: 0.2em;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    border: none;
+}
+#hotbar-contents span img[src=""] {
+    display: none;
+}
+
+#hotbar-selector {
+    position: absolute;
+    bottom: calc(1em + 64px + 0.2em);
+    min-width: 64px;
+    height: 64px;
+    display: flex;
+    flex-direction: row;
+    margin-bottom: 1em;
+    gap: 0.2em;
+    pointer-events: all;
+}
+#hotbar-selector-list {
+    display: flex;
+    flex-direction: row;
+    gap: 0.6em;
 }

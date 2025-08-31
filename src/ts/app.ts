@@ -53,6 +53,12 @@ class TileGrid {
                 tile.className = "tile";
                 tile.dataset.x = String(c);
                 tile.dataset.y = String(r);
+                tile.addEventListener("contextmenu", e => e.preventDefault());
+                tile.addEventListener("pointerenter", () => {
+                    if (this.isPointerDown && this.pointerButton === 2) {
+                        (tile as HTMLDivElement).innerHTML = "";
+                    }
+                });
                 fragment.appendChild(tile);
             }
         }
@@ -85,6 +91,7 @@ class TileGrid {
             this.pointerButton = null;
             this.hoveredTilesDuringDrag.clear();
         });
+
 
         window.addEventListener("pointermove", e => {
             this.pointerX = e.clientX;
@@ -130,6 +137,8 @@ class TileGrid {
         const baseBgHeight = 2160;
 
         this.grid.style.backgroundSize = `${baseBgWidth * scale}px ${baseBgHeight * scale}px`;
+
+        this.hoveredTilesDuringDrag.clear();
     }
 
     public updateMouseHover(): void {
@@ -195,7 +204,170 @@ class TileGrid {
     }
 }
 
+function updateSelectorList(tileId: string | undefined): void {
+    const slotSelector = document.getElementById("hotbar-selector") as HTMLDivElement | null;
+    const slotSelectorList = document.getElementById("hotbar-selector-list") as HTMLUListElement | null;
+    if (slotSelector != null && slotSelectorList != null && tileId != null) {
+        slotSelectorList.innerHTML = "";
+        const tile = tiles.find(t => t.id === tileId);
+        if (tile) {
+            slotSelector.classList.remove("hidden");
+            for (const sprite of tile.sprites) {
+                const li = document.createElement("li");
+                if (sprite.id === selectedSprite?.id) {
+                    li.classList.add("selected");
+                }
+                li.onclick = function () {
+                    selectedTile = tile;
+                    selectedSprite = sprite;
+                    for (const child of slotSelectorList.children) {
+                        child.classList.remove("selected");
+                    }
+                    li.classList.add("selected");
+                };
+                const small = document.createElement("small");
+                small.innerText = sprite.property || "(no property)";
+                li.appendChild(small);
+                const img = document.createElement("img");
+                for (const layer of sprite.layers) {
+                    if (layer.fileData != null && !layer.drawAsShadow) {
+                        img.src = layer.fileData;
+                    }
+                }
+                // If still blank, allow for the shadow
+                if (img.src == "") {
+                    for (const layer of sprite.layers) {
+                        if (layer.fileData != null) {
+                            img.src = layer.fileData;
+                        }
+                    }
+                }
+                li.appendChild(img);
+                slotSelectorList.appendChild(li);
+            }
+        } else {
+            selectedTile = null;
+            selectedSprite = null;
+            slotSelector.classList.add("hidden");
+        }
+    }
+}
+
+function selectSlot(slot: number): void {
+    if (slot < 1 || slot > 10) return;
+    const slotElement = document.getElementById(`slot-${slot}`) as HTMLSpanElement | null;
+    if (slotElement != null) {
+        for (let i = 1; i <= 10; i++) {
+            const otherSlot = document.getElementById(`slot-${i}`) as HTMLSpanElement | null;
+            if (otherSlot) {
+                otherSlot.classList.remove("selected");
+            }
+        }
+        slotElement.classList.add("selected");
+
+        const slotSelector = document.getElementById("hotbar-selector") as HTMLDivElement | null;
+        const slotSelectorList = document.getElementById("hotbar-selector-list") as HTMLUListElement | null;
+        if (slotSelector != null && slotSelectorList != null) {
+            const tile = tiles.find(t => t.id === slotElement.dataset.tileId);
+            if (tile != null) {
+                selectedTile = tile;
+                selectedSprite = tile.sprites.length > 0 ? tile.sprites[0] : null;
+            }
+            updateSelectorList(slotElement.dataset.tileId);
+        }
+    }
+}
+
+function createTileManagerSlotElement(tile: Tile): HTMLDivElement {
+    const slotElement = document.createElement("input");
+    slotElement.type = "number";
+    slotElement.min = "0";
+    slotElement.max = "10";
+    const slots = document.getElementsByClassName("slot");
+    let found: boolean = false;
+    for (let i = 0; i < slots.length; i++) {
+        const slot = slots[i] as HTMLSpanElement;
+        if (slot.dataset.tileId === tile.id) {
+            slotElement.value = String(i + 1);
+            found = true;
+        }
+    }
+    if (!found) {
+        slotElement.value = "0";
+    }
+    let lastValue: number = Number(slotElement.value);
+    slotElement.onchange = function () {
+        const value = Number(slotElement.value);
+        const direction = value > lastValue ? 1 : value < lastValue ? -1 : 0;
+        lastValue = value;
+        const slot = document.getElementById(`slot-${value}`) as HTMLSpanElement | null;
+        if (slot != null) {
+            console.log(slot.dataset.tileId);
+            if (slot.dataset.tileId != "") {
+                if (direction === 1) {
+                    slotElement.value = String(value + 1);
+                } else {
+                    slotElement.value = String(value - 1);
+                }
+                lastValue = Number(slotElement.value);
+                return;
+            } else {
+                for (let i = 1; i <= 10; i++) {
+                    const otherSlot = document.getElementById(`slot-${i}`) as HTMLSpanElement | null;
+                    if (otherSlot && otherSlot.dataset.tileId === tile.id) {
+                        otherSlot.dataset.tileId = "";
+                        for (const child of otherSlot.children) {
+                            if (child instanceof HTMLImageElement) {
+                                child.src = "";
+                            }
+                        }
+                    }
+                }
+                for (const child of slot.children) {
+                    if (child instanceof HTMLImageElement) {
+                        for (const sprite of tile.sprites) {
+                            for (const layer of sprite.layers) {
+                                if (layer.fileData && !layer.drawAsShadow) {
+                                    child.src = layer.fileData;
+                                }
+                            }
+                        }
+                    }
+                }
+                slot.dataset.tileId = tile.id;
+            }
+            persist();
+        } else if (value == 0) {
+            const slots = document.getElementsByClassName("slot");
+            for (const slot of slots) {
+                const otherSlot = slot as HTMLSpanElement;
+                if (otherSlot.dataset.tileId === tile.id) {
+                    otherSlot.dataset.tileId = "";
+                    for (const child of otherSlot.children) {
+                        if (child instanceof HTMLImageElement) {
+                            child.src = "";
+                        }
+                    }
+                    persist();
+                }
+            }
+        }
+        if (value < 0 || value > 10) {
+            slotElement.value = "0";
+        }
+    };
+    slotElement.onclick = function (e) {
+        e.stopPropagation();
+    };
+    return slotElement;
+}
+
 function createTileManagerTileElement(tile: Tile): HTMLDivElement {
+    const slotLabelElement = document.createElement("label");
+    slotLabelElement.innerText = "Slot: ";
+    const slotElement = createTileManagerSlotElement(tile);
+    const spacerElement = document.createElement("div");
+    spacerElement.classList.add("spacer");
     const tileElement = document.createElement("div");
     tileElement.innerText = tile.name;
     tileElement.classList.add("tm-tile");
@@ -203,6 +375,9 @@ function createTileManagerTileElement(tile: Tile): HTMLDivElement {
         currentTile = tile;
         openMenu("tile-editor-menu");
     };
+    tileElement.appendChild(spacerElement);
+    tileElement.appendChild(slotLabelElement);
+    tileElement.appendChild(slotElement);
     return tileElement;
 }
 
@@ -236,6 +411,13 @@ let currentSpriteLayer: SpriteLayer | null = null;
 let currentMenu: string | null = null;
 
 function persist() {
+    const hotbarSelector = document.getElementById("hotbar-contents") as HTMLDivElement | null;
+    if (hotbarSelector) {
+        const selectedSlot = hotbarSelector.querySelector("span.selected") as HTMLSpanElement | null;
+        if (selectedSlot) {
+            selectSlot(Number(selectedSlot.id.replace("slot-", "")));
+        }
+    }
     saveTiles(tiles);
 }
 
@@ -361,6 +543,25 @@ function initControls(): void {
                 sprites: []
             };
             openMenu("tile-editor-menu");
+        };
+    }
+
+    const teDeleteTileControl = document.querySelector("#te-delete-tile-control > button") as HTMLButtonElement | null;
+    if (!teDeleteTileControl) {
+        console.error("Delete Tile control not found");
+    } else {
+        teDeleteTileControl.onclick = function () {
+            if (currentTile) {
+                const tileIndex = tiles.findIndex(tile => {
+                    if (currentTile == null) return false;
+                    return tile.id === currentTile.id;
+                });
+                if (tileIndex !== -1) {
+                    tiles.splice(tileIndex, 1);
+                }
+            }
+            persist();
+            openMenu("tile-manager-menu");
         };
     }
 
@@ -583,6 +784,14 @@ document.addEventListener("DOMContentLoaded", () => {
     const panSpeed = 6;
     const keys = new Set<string>();
 
+    const slots = document.getElementsByClassName("slot");
+    for (let i = 0; i < slots.length; i++) {
+        const slot = slots[i] as HTMLDivElement;
+        slot.onclick = () => {
+            selectSlot(i + 1);
+        };
+    }
+
     document.addEventListener("contextmenu", e => e.preventDefault());
 
     document.addEventListener("keydown", e => {
@@ -591,6 +800,12 @@ document.addEventListener("DOMContentLoaded", () => {
         if (["w", "a", "s", "d"].includes(key)) {
             keys.add(key);
             e.preventDefault();
+        } else if (["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"].includes(key)) {
+            let slot = Number(key);
+            if (slot == 0) slot = 10;
+            if (!isNaN(slot)) {
+                selectSlot(slot);
+            }
         }
     });
 
@@ -610,6 +825,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     initControls();
+    selectSlot(1);
 
     const animate = (): void => {
         if (currentMenu != null) {
