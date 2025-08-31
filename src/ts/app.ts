@@ -162,41 +162,82 @@ class TileGrid {
         }
     }
 
+    public placeTile(x: number, y: number, proposedTile: Tile, proposedSprite: Sprite): void {
+        const tile = this.getTileAt(x, y);
+        if (!tile) return;
+        tile.innerHTML = "";
+        tile.dataset.assignedTile = proposedTile.id;
+        tile.dataset.assignedSprite = proposedSprite.id;
+        for (const layer of proposedSprite.layers) {
+            if (layer.fileData == null) continue;
+            const containerElement = document.createElement("div");
+            containerElement.classList.add("tile-img-container");
+            containerElement.style.width = String(layer.width) + "px";
+            containerElement.style.height = String(layer.height) + "px";
+            const imageElement = document.createElement("img");
+            imageElement.src = layer.fileData;
+            if (!layer.drawAsShadow && layer.variants > 1) {
+                const rand = Math.floor(Math.random() * ((layer.variants - 1) - 0 + 1) + 0);
+                imageElement.style.left = "-" + String(rand * layer.width) + "px";
+            }
+            containerElement.dataset.shiftX = String(layer.shiftX * 2); // 2* shift due to browser scaling
+            containerElement.dataset.shiftY = String(layer.shiftY * 2); // 2* shift due to browser scaling
+            let shiftX = layer.shiftX * 2 * this.zoomScale;
+            let shiftY = layer.shiftY * 2 * this.zoomScale;
+            containerElement.style.transform = `translate(${shiftX}px, ${shiftY}px) scale(${this.zoomScale})`;
+            containerElement.appendChild(imageElement);
+            if (layer.drawAsShadow) {
+                tile.prepend(containerElement);
+            } else {
+                tile.appendChild(containerElement);
+            }
+        }
+    }
+
     protected onTileHoverWhileDown(x: number, y: number, tile: HTMLDivElement, button: number): void {
         if (button === 0) {
             if (!selectedTile || !selectedSprite) return;
-            tile.innerHTML = "";
-            for (const layer of selectedSprite.layers) {
-                if (layer.fileData == null) continue;
-                const containerElement = document.createElement("div");
-                containerElement.classList.add("tile-img-container");
-                containerElement.style.width = String(layer.width) + "px";
-                containerElement.style.height = String(layer.height) + "px";
-                const imageElement = document.createElement("img");
-                imageElement.src = layer.fileData;
-                if (!layer.drawAsShadow && layer.variants > 1) {
-                    const rand = Math.floor(Math.random() * ((layer.variants - 1) - 0 + 1) + 0);
-                    imageElement.style.left = "-" + String(rand * layer.width) + "px";
-                }
-                containerElement.dataset.shiftX = String(layer.shiftX * 2); // 2* shift due to browser scaling
-                containerElement.dataset.shiftY = String(layer.shiftY * 2); // 2* shift due to browser scaling
-                let shiftX = layer.shiftX * 2 * this.zoomScale;
-                let shiftY = layer.shiftY * 2 * this.zoomScale;
-                containerElement.style.transform = `translate(${shiftX}px, ${shiftY}px) scale(${this.zoomScale})`;
-                containerElement.appendChild(imageElement);
-                if (layer.drawAsShadow) {
-                    tile.prepend(containerElement);
-                } else {
-                    tile.appendChild(containerElement);
-                }
-            }
+            this.placeTile(x, y, selectedTile, selectedSprite);
         } else if (button === 2) {
             tile.innerHTML = "";
+            tile.dataset.assignedTile = "";
+            tile.dataset.assignedSprite = "";
         }
     }
 
     public getTileAt(x: number, y: number): HTMLDivElement | null {
         return this.grid.querySelector<HTMLDivElement>(`.tile[data-x="${x}"][data-y="${y}"]`);
+    }
+
+    public convertPointerPosToTileCoords(): { x: number; y: number } | null {
+        const pointerPos = this.getPointerPosition();
+        if (pointerPos == null) return null;
+
+        // Get the grid's current on-screen rectangle
+        const rect = this.grid.getBoundingClientRect();
+
+        // Pointer position relative to grid's top-left corner
+        const relX = pointerPos.x - rect.left;
+        const relY = pointerPos.y - rect.top;
+
+        // Actual tile size at current zoom
+        const tileSize = this.tileSizes[this.zoomIndex];
+
+        // Compute column/row
+        const x = Math.floor(relX / tileSize);
+        const y = Math.floor(relY / tileSize);
+
+        // Clamp to grid bounds
+        if (x < 0 || y < 0 || x >= this.cols || y >= this.rows) return null;
+
+        return { x, y };
+    }
+
+    public getPointerPosition(): { x: number; y: number } | null {
+        if (this.pointerX != null && this.pointerY != null) {
+            return { x: this.pointerX, y: this.pointerY };
+        }
+        return null;
     }
 
     public resetFrameHistory(): void {
@@ -214,6 +255,8 @@ function updateSelectorList(tileId: string | undefined): void {
             slotSelector.classList.remove("hidden");
             for (const sprite of tile.sprites) {
                 const li = document.createElement("li");
+                li.dataset.tileId = tile.id;
+                li.dataset.spriteId = sprite.id;
                 if (sprite.id === selectedSprite?.id) {
                     li.classList.add("selected");
                 }
@@ -464,31 +507,39 @@ function openMenu(menuId: string): void {
                 }
             }
         } else if (menuId == "sprite-layer-editor-menu") {
-            const slePicturePreview = document.getElementById("sle-picture-preview") as HTMLImageElement | null;
-            if (slePicturePreview && currentSpriteLayer && currentSpriteLayer.fileData != null) {
-                slePicturePreview.src = currentSpriteLayer.fileData;
+            const sleFileUpload = document.getElementById("sle-picture-upload") as HTMLInputElement | null;
+            if (sleFileUpload) {
+                sleFileUpload.value = "";
             }
-            const sleLayerWidthInput = document.getElementById("sle-layer-width") as HTMLInputElement | null;
+            const slePicturePreview = document.getElementById("sle-picture-preview") as HTMLImageElement | null;
+            if (slePicturePreview) {
+                if (currentSpriteLayer && currentSpriteLayer.fileData != null) {
+                    slePicturePreview.src = currentSpriteLayer.fileData;
+                } else {
+                    slePicturePreview.src = "";
+                }
+            }
+            const sleLayerWidthInput = document.getElementById("sle-width") as HTMLInputElement | null;
             if (sleLayerWidthInput && currentSpriteLayer) {
                 sleLayerWidthInput.value = currentSpriteLayer.width.toString();
             }
-            const sleLayerHeightInput = document.getElementById("sle-layer-height") as HTMLInputElement | null;
+            const sleLayerHeightInput = document.getElementById("sle-height") as HTMLInputElement | null;
             if (sleLayerHeightInput && currentSpriteLayer) {
                 sleLayerHeightInput.value = currentSpriteLayer.height.toString();
             }
-            const sleLayerVariantsInput = document.getElementById("sle-layer-variants") as HTMLInputElement | null;
+            const sleLayerVariantsInput = document.getElementById("sle-variants") as HTMLInputElement | null;
             if (sleLayerVariantsInput && currentSpriteLayer) {
                 sleLayerVariantsInput.value = currentSpriteLayer.variants.toString();
             }
-            const sleLayerShiftXInput = document.getElementById("sle-layer-shift-x") as HTMLInputElement | null;
+            const sleLayerShiftXInput = document.getElementById("sle-offset-x") as HTMLInputElement | null;
             if (sleLayerShiftXInput && currentSpriteLayer) {
                 sleLayerShiftXInput.value = currentSpriteLayer.shiftX.toString();
             }
-            const sleLayerShiftYInput = document.getElementById("sle-layer-shift-y") as HTMLInputElement | null;
+            const sleLayerShiftYInput = document.getElementById("sle-offset-y") as HTMLInputElement | null;
             if (sleLayerShiftYInput && currentSpriteLayer) {
                 sleLayerShiftYInput.value = currentSpriteLayer.shiftY.toString();
             }
-            const sleLayerDrawAsShadowInput = document.getElementById("sle-layer-draw-as-shadow") as HTMLInputElement | null;
+            const sleLayerDrawAsShadowInput = document.getElementById("sle-draw-as-shadow") as HTMLInputElement | null;
             if (sleLayerDrawAsShadowInput && currentSpriteLayer) {
                 sleLayerDrawAsShadowInput.checked = currentSpriteLayer.drawAsShadow;
             }
@@ -620,6 +671,22 @@ function initControls(): void {
         };
     }
 
+    const seDeleteSpriteControl = document.querySelector("#se-delete-sprite-control > button") as HTMLButtonElement | null;
+    if (!seDeleteSpriteControl) {
+        console.error("Delete Sprite control not found");
+    } else {
+        seDeleteSpriteControl.onclick = function () {
+            if (currentSprite && currentTile) {
+                const spriteIndex = currentTile.sprites.indexOf(currentSprite);
+                if (spriteIndex !== -1) {
+                    currentTile.sprites.splice(spriteIndex, 1);
+                }
+            }
+            persist();
+            openMenu("tile-editor-menu");
+        };
+    }
+
     const seDiscardChangesControl = document.querySelector("#se-discard-changes-control > button") as HTMLButtonElement | null;
     if (!seDiscardChangesControl) {
         console.error("Discard Changes control not found");
@@ -702,6 +769,22 @@ function initControls(): void {
         };
     }
 
+    const sleDeleteLayerControl = document.querySelector("#sle-delete-sprite-layer-control > button") as HTMLButtonElement | null;
+    if (!sleDeleteLayerControl) {
+        console.error("Delete Layer control not found");
+    } else {
+        sleDeleteLayerControl.onclick = function () {
+            if (currentSpriteLayer && currentSprite && currentTile) {
+                const layerIndex = currentSprite.layers.indexOf(currentSpriteLayer);
+                if (layerIndex !== -1) {
+                    currentSprite.layers.splice(layerIndex, 1);
+                }
+            }
+            persist();
+            openMenu("sprite-editor-menu");
+        };
+    }
+
     const sleDiscardChangesControl = document.querySelector("#sle-discard-changes-control > button") as HTMLButtonElement | null;
     if (!sleDiscardChangesControl) {
         console.error("Discard Changes control not found");
@@ -773,10 +856,46 @@ function initControls(): void {
             changeBackgroundControl.innerText = String(Number(grid.dataset.background) + 1);
         };
     }
+
+    const closeLegendControl = document.querySelector("#legend-close") as HTMLButtonElement | null;
+    if (!closeLegendControl) {
+        console.error("Close Legend control not found");
+    } else {
+        closeLegendControl.onclick = function () {
+            const legend = document.getElementById("legend") as HTMLDivElement | null;
+            if (legend) {
+                legend.classList.add("hidden");
+            }
+        };
+    }
+
 }
+
+function getTileAtCursor(gridInstance: TileGrid): { tile: Tile | null, sprite: Sprite | null } | null {
+    const pointerPos = gridInstance.getPointerPosition();
+    if (pointerPos == null) return null;
+    const gridPos = gridInstance.convertPointerPosToTileCoords();
+    if (gridPos == null) return null;
+    const gridTile = gridInstance.getTileAt(gridPos.x, gridPos.y);
+    if (gridTile == null) return null;
+    const tileId = gridTile.dataset.assignedTile;
+    if (tileId == null || tileId === "") return null;
+    const tile = tiles.find(t => t.id === tileId);
+    if (tile == null) return null;
+    const spriteId = gridTile.dataset.assignedSprite;
+    if (spriteId == null || spriteId === "") return null;
+    const sprite = tile.sprites.find(s => s.id === spriteId);
+    if (sprite == null) return null;
+    return {
+        tile,
+        sprite
+    };
+}
+window.getTileAtCursor = getTileAtCursor;
 
 document.addEventListener("DOMContentLoaded", () => {
     const gridInstance = new TileGrid("grid", 16, 24, 64);
+    window.grid = gridInstance;
 
     const grid = document.getElementById("grid") as HTMLDivElement;
     let offsetX = 0;
@@ -795,16 +914,97 @@ document.addEventListener("DOMContentLoaded", () => {
     document.addEventListener("contextmenu", e => e.preventDefault());
 
     document.addEventListener("keydown", e => {
-        if (currentMenu != null) return;
         const key = e.key.toLowerCase();
+        if (key == "escape") {
+            if (currentMenu) {
+                closeMenu(currentMenu, false);
+                currentMenu = null;
+            }
+            e.preventDefault();
+        }
+        if (currentMenu != null) return;
         if (["w", "a", "s", "d"].includes(key)) {
             keys.add(key);
             e.preventDefault();
         } else if (["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"].includes(key)) {
             let slot = Number(key);
-            if (slot == 0) slot = 10;
-            if (!isNaN(slot)) {
-                selectSlot(slot);
+            if (e.metaKey || e.ctrlKey) {
+                const slotSelectorList = document.getElementById("hotbar-selector-list") as HTMLDivElement | null;
+                if (slotSelectorList && slotSelectorList.children.length > 0) {
+                    if (slotSelectorList.children.length >= slot) {
+                        const child = slotSelectorList.children[slot - 1] as HTMLLIElement;
+                        child.click();
+                    }
+                }
+                e.preventDefault();
+            } else {
+                if (slot == 0) slot = 10;
+                if (!isNaN(slot)) {
+                    selectSlot(slot);
+                }
+            }
+        } else if (["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(e.key)) {
+            const pointerPos = gridInstance.getPointerPosition();
+            if (pointerPos == null) return null;
+            const gridPos = gridInstance.convertPointerPosToTileCoords();
+            if (gridPos == null) return null;
+            const { tile, sprite } = window.getTileAtCursor(gridInstance) ?? {};
+            if (!tile || !sprite) return;
+            if (e.shiftKey) {
+                // Shift+Arrow will move the offset of any non-shadow layers
+                for (const layer of sprite.layers) {
+                    if (layer.drawAsShadow) continue;
+                    switch (e.key) {
+                        case "ArrowLeft":
+                            layer.shiftX -= 1;
+                            break;
+                        case "ArrowRight":
+                            layer.shiftX += 1;
+                            break;
+                        case "ArrowUp":
+                            layer.shiftY -= 1;
+                            break;
+                        case "ArrowDown":
+                            layer.shiftY += 1;
+                            break;
+                    }
+                }
+                tile.sprites = tile.sprites.map(s => s.id === sprite.id ? sprite : s);
+                gridInstance.placeTile(gridPos.x, gridPos.y, tile, sprite);
+                persist();
+                e.preventDefault();
+            } else if (e.metaKey || e.ctrlKey) {
+                // Meta+Arrow will move the offset of any shadow layers
+                for (const layer of sprite.layers) {
+                    if (!layer.drawAsShadow) continue;
+                    switch (e.key) {
+                        case "ArrowLeft":
+                            layer.shiftX -= 1;
+                            break;
+                        case "ArrowRight":
+                            layer.shiftX += 1;
+                            break;
+                        case "ArrowUp":
+                            layer.shiftY -= 1;
+                            break;
+                        case "ArrowDown":
+                            layer.shiftY += 1;
+                            break;
+                    }
+                }
+                tile.sprites = tile.sprites.map(s => s.id === sprite.id ? sprite : s);
+                gridInstance.placeTile(gridPos.x, gridPos.y, tile, sprite);
+                persist();
+                e.preventDefault();
+            }
+        } else if (e.key === "l") {
+            const legend = document.getElementById("legend") as HTMLDivElement | null;
+            if (legend) {
+                if (legend.classList.contains("hidden")) {
+                    legend.classList.remove("hidden");
+                } else {
+                    legend.classList.add("hidden");
+                }
             }
         }
     });
@@ -826,6 +1026,18 @@ document.addEventListener("DOMContentLoaded", () => {
 
     initControls();
     selectSlot(1);
+
+    // legend has been shown, hide it for future loads
+    if (localStorage.getItem("legendShown") === "2") {
+        const legend = document.getElementById("legend") as HTMLDivElement | null;
+        if (legend) {
+            legend.classList.add("hidden");
+        }
+    } else if (localStorage.getItem("legendShown") === "1") {
+        localStorage.setItem("legendShown", "2");
+    } else {
+        localStorage.setItem("legendShown", "1");
+    }
 
     const animate = (): void => {
         if (currentMenu != null) {

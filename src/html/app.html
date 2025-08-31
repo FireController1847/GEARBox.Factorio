@@ -101,6 +101,9 @@
                     </form>
                 </div>
                 <div class="menu-bottom-bar">
+                    <div id="se-delete-sprite-control">
+                        <button class="box-style-red box-hover-style-red">Delete Sprite</button>
+                    </div>
                     <div id="se-discard-changes-control">
                         <button class="box-style box-hover-style">Discard Changes</button>
                     </div>
@@ -153,6 +156,9 @@
                     </form>
                 </div>
                 <div class="menu-bottom-bar">
+                    <div id="sle-delete-sprite-layer-control">
+                        <button class="box-style-red box-hover-style-red">Delete Layer</button>
+                    </div>
                     <div id="sle-discard-changes-control">
                         <button class="box-style box-hover-style">Discard Changes</button>
                     </div>
@@ -210,6 +216,21 @@
                     <!-- Filled Dynamically -->
                 </ul>
             </div>
+        </div>
+        <div id="legend">
+            <ul>
+                <li><b>Legend</b></li>
+                <li><span>L</span> – Toggle Legend</li>
+                <li><span>WASD</span> – Pan Camera</li>
+                <li><span>Scroll Wheel</span> – Zoom In/Out</li>
+                <li><span>Left-Click</span> – Place Selected Tile</li>
+                <li><span>Right-Click</span> – Remove Selected Tile</li>
+                <li><span>[1]-[10]</span> – Select Hotbar Slot</li>
+                <li><span>Ctrl+[1]-[10]</span> – Select Sub-Hotbar Slot</li>
+                <li><span>Shift+ArrowKey</span> – Modify Non-Shadow Layer Offset</li>
+                <li><span>Ctrl+ArrowKey</span> – Modify Shadow Layer Offset</li>
+            </ul>
+            <button id="legend-close">Close Legend</button>
         </div>
         <div id="grid" />
     </body>
