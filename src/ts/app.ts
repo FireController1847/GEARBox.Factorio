@@ -97,6 +97,23 @@ class TileGrid {
     private applyZoom(first = false): void {
         const tileSize = this.tileSizes[this.zoomIndex];
         this.grid.style.setProperty("--tile", `${tileSize}px`);
+        this.grid.dataset.zoom = String(this.zoomScale);
+
+        for (const tile in this.grid.children) {
+            const element = this.grid.children[tile];
+            if (element instanceof HTMLDivElement) {
+                for (const child of element.children) {
+                    if (child instanceof HTMLDivElement && child.classList.contains("tile-img-container")) {
+                        const shiftX = Number(child.dataset.shiftX || "0");
+                        const shiftY = Number(child.dataset.shiftY || "0");
+
+                        const offsetX = shiftX * this.zoomScale;
+                        const offsetY = shiftY * this.zoomScale;
+                        child.style.transform = `translate(${offsetX}px, ${offsetY}px) scale(${this.zoomScale})`;
+                    }
+                }
+            }
+        }
 
         if (first) {
             this.grid.style.gridTemplateRows = `repeat(${this.rows}, var(--tile))`;
@@ -150,8 +167,17 @@ class TileGrid {
                     const rand = Math.floor(Math.random() * ((layer.variants - 1) - 0 + 1) + 0);
                     imageElement.style.left = "-" + String(rand * layer.width) + "px";
                 }
+                containerElement.dataset.shiftX = String(layer.shiftX * 2); // 2* shift due to browser scaling
+                containerElement.dataset.shiftY = String(layer.shiftY * 2); // 2* shift due to browser scaling
+                let shiftX = layer.shiftX * 2 * this.zoomScale;
+                let shiftY = layer.shiftY * 2 * this.zoomScale;
+                containerElement.style.transform = `translate(${shiftX}px, ${shiftY}px) scale(${this.zoomScale})`;
                 containerElement.appendChild(imageElement);
-                tile.appendChild(containerElement);
+                if (layer.drawAsShadow) {
+                    tile.prepend(containerElement);
+                } else {
+                    tile.appendChild(containerElement);
+                }
             }
         } else if (button === 2) {
             tile.innerHTML = "";
@@ -506,7 +532,7 @@ function initControls(): void {
                     }
                 }
                 if (!found) {
-                   currentSprite.layers.push(currentSpriteLayer);
+                    currentSprite.layers.push(currentSpriteLayer);
                 }
 
                 openMenu("sprite-editor-menu");

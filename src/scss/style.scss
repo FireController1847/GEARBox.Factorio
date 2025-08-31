@@ -123,12 +123,26 @@ ul {
     justify-content: center;
     align-items: center;
     user-select: none;
-    &:hover {
-        background-image: url("../resource/selection-box.png");
+    &::after {
+        content: "";
+        position: absolute;
+        top: -6.5%;
+        left: -6.5%;
+        width: 113%;
+        height: 113%;
         background-size: cover;
+        background-repeat: no-repeat;
+        opacity: 0;
+        z-index: 2;
+        pointer-events: none;
+    }
+    &:hover::after {
+        background-image: url("../resource/selection-box.png");
+        opacity: 1;
     }
 }
 .tile-img-container {
+    position: absolute;
     display: flex;
     overflow: hidden;
 }
