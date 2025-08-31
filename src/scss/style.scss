@@ -148,7 +148,7 @@ ul {
         pointer-events: none;
     }
     &:hover::after {
-        background-image: url("../resource/selection-box.png");
+        background-image: url("./resource/selection-box.png");
         opacity: 1;
     }
 }

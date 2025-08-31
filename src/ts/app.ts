@@ -115,10 +115,10 @@ class TileGrid {
                     if (child instanceof HTMLDivElement && child.classList.contains("tile-img-container")) {
                         const shiftX = Number(child.dataset.shiftX || "0");
                         const shiftY = Number(child.dataset.shiftY || "0");
-
-                        const offsetX = shiftX * this.zoomScale;
-                        const offsetY = shiftY * this.zoomScale;
-                        child.style.transform = `translate(${offsetX}px, ${offsetY}px) scale(${this.zoomScale})`;
+                        const scale = Number(child.dataset.scale || "1");
+                        const offsetX = shiftX * this.zoomScale * scale;
+                        const offsetY = shiftY * this.zoomScale * scale;
+                        child.style.transform = `translate(${offsetX}px, ${offsetY}px) scale(${this.zoomScale * scale})`;
                     }
                 }
             }
@@ -182,9 +182,10 @@ class TileGrid {
             }
             containerElement.dataset.shiftX = String(layer.shiftX * 2); // 2* shift due to browser scaling
             containerElement.dataset.shiftY = String(layer.shiftY * 2); // 2* shift due to browser scaling
-            let shiftX = layer.shiftX * 2 * this.zoomScale;
-            let shiftY = layer.shiftY * 2 * this.zoomScale;
-            containerElement.style.transform = `translate(${shiftX}px, ${shiftY}px) scale(${this.zoomScale})`;
+            containerElement.dataset.scale = String(layer.scale);
+            let shiftX = layer.shiftX * 2 * this.zoomScale * layer.scale;
+            let shiftY = layer.shiftY * 2 * this.zoomScale * layer.scale;
+            containerElement.style.transform = `translate(${shiftX}px, ${shiftY}px) scale(${(this.zoomScale * layer.scale)})`;
             containerElement.appendChild(imageElement);
             if (layer.drawAsShadow) {
                 tile.prepend(containerElement);
@@ -539,6 +540,11 @@ function openMenu(menuId: string): void {
             if (sleLayerShiftYInput && currentSpriteLayer) {
                 sleLayerShiftYInput.value = currentSpriteLayer.shiftY.toString();
             }
+            const sleScaleInput = document.getElementById("sle-scale") as HTMLInputElement | null;
+            if (sleScaleInput && currentSpriteLayer) {
+                if (currentSpriteLayer.scale == undefined) currentSpriteLayer.scale = 1;
+                sleScaleInput.value = currentSpriteLayer.scale.toString();
+            }
             const sleLayerDrawAsShadowInput = document.getElementById("sle-draw-as-shadow") as HTMLInputElement | null;
             if (sleLayerDrawAsShadowInput && currentSpriteLayer) {
                 sleLayerDrawAsShadowInput.checked = currentSpriteLayer.drawAsShadow;
@@ -743,6 +749,7 @@ function initControls(): void {
                 variants: 1,
                 shiftX: 0,
                 shiftY: 0,
+                scale: 1,
                 drawAsShadow: false
             };
             openMenu("sprite-layer-editor-menu");
@@ -807,6 +814,7 @@ function initControls(): void {
                 const sleVariantsInput = document.getElementById("sle-variants") as HTMLInputElement | null;
                 const sleOffsetXInput = document.getElementById("sle-offset-x") as HTMLInputElement | null;
                 const sleOffsetYInput = document.getElementById("sle-offset-y") as HTMLInputElement | null;
+                const sleScaleInput = document.getElementById("sle-scale") as HTMLInputElement | null;
                 const sleDrawAsShadowInput = document.getElementById("sle-draw-as-shadow") as HTMLInputElement | null;
 
                 if (sleFileInput && sleFileInput.files != null && sleFileInput.files.length > 0) {
@@ -826,6 +834,7 @@ function initControls(): void {
                 if (sleVariantsInput) currentSpriteLayer.variants = Number(sleVariantsInput.value);
                 if (sleOffsetXInput) currentSpriteLayer.shiftX = Number(sleOffsetXInput.value);
                 if (sleOffsetYInput) currentSpriteLayer.shiftY = Number(sleOffsetYInput.value);
+                if (sleScaleInput) currentSpriteLayer.scale = Number(sleScaleInput.value);
                 if (sleDrawAsShadowInput) currentSpriteLayer.drawAsShadow = sleDrawAsShadowInput.checked;
 
                 let found: boolean = false;
@@ -974,7 +983,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 persist();
                 e.preventDefault();
             } else if (e.metaKey || e.ctrlKey) {
-                // Meta+Arrow will move the offset of any shadow layers
+                // Meta/Ctrl+Arrow will move the offset of any shadow layers
                 for (const layer of sprite.layers) {
                     if (!layer.drawAsShadow) continue;
                     switch (e.key) {
@@ -997,6 +1006,53 @@ document.addEventListener("DOMContentLoaded", () => {
                 persist();
                 e.preventDefault();
             }
+        } else if (["+", "=", "-", "_"].includes(e.key) || (e.key === "=" && e.shiftKey)) {
+            const pointerPos = gridInstance.getPointerPosition();
+            if (pointerPos == null) return null;
+            const gridPos = gridInstance.convertPointerPosToTileCoords();
+            if (gridPos == null) return null;
+            const { tile, sprite } = window.getTileAtCursor(gridInstance) ?? {};
+            if (!tile || !sprite) return;
+            if (e.shiftKey) {
+                // Shift+Arrow will modify the scale of any non-shadow layers
+                for (const layer of sprite.layers) {
+                    if (layer.drawAsShadow) continue;
+                    switch (e.key) {
+                        case "=":
+                        case "+":
+                            layer.scale += 0.1;
+                            break;
+                        case "_":
+                        case "-":
+                            layer.scale -= 0.1;
+                            break;
+                    }
+                }
+                tile.sprites = tile.sprites.map(s => s.id === sprite.id ? sprite : s);
+                gridInstance.placeTile(gridPos.x, gridPos.y, tile, sprite);
+                persist();
+                e.preventDefault();
+            } else if (e.metaKey || e.ctrlKey) {
+                // Meta/Ctrl+Arrow will modify the scale of any shadow layers
+                for (const layer of sprite.layers) {
+                    if (!layer.drawAsShadow) continue;
+                    switch (e.key) {
+                        case "=":
+                        case "+":
+                            layer.scale += 0.1;
+                            break;
+                        case "_":
+                        case "-":
+                            layer.scale -= 0.1;
+                            break;
+                    }
+                }
+                tile.sprites = tile.sprites.map(s => s.id === sprite.id ? sprite : s);
+                gridInstance.placeTile(gridPos.x, gridPos.y, tile, sprite);
+                persist();
+                e.preventDefault();
+            }
+            e.preventDefault();
         } else if (e.key === "l") {
             const legend = document.getElementById("legend") as HTMLDivElement | null;
             if (legend) {
