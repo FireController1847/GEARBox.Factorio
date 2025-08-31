@@ -7,6 +7,7 @@ type SpriteLayer = {
     variants: number,
     shiftX: number,
     shiftY: number,
+    scale: number,
     drawAsShadow: boolean
 }
 
